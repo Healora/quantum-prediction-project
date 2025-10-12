@@ -20,89 +20,70 @@ def load_models():
     """Load all models from the extracted_models folder"""
     global models, scaler, model_metadata
     
-    print("Looking for models in 'extracted_models' folder...")
+    print("🔍 Looking for models in 'extracted_models' folder...")
     
     # Find the extracted_models folder
     models_folder = 'extracted_models'
     if not os.path.exists(models_folder):
-        print("'extracted_models' folder not found!")
+        print("❌ 'extracted_models' folder not found!")
         return False
     
     try:
         # Load preprocessing scaler
-        scaler_files = glob.glob(os.path.join(models_folder, 'preprocessing_*.pkl'))
-        if scaler_files:
-            scaler = joblib.load(scaler_files[0])
-            print(f"Loaded scaler: {os.path.basename(scaler_files[0])}")
+        scaler_file = os.path.join(models_folder, 'preprocessing.pkl')
+        if os.path.exists(scaler_file):
+            scaler = joblib.load(scaler_file)
+            print(f"✅ Loaded preprocessing scaler")
         
         # Load Logistic Regression
-        lr_files = glob.glob(os.path.join(models_folder, 'logistic_regression_*.joblib'))
-        if lr_files:
-            models['logistic'] = joblib.load(lr_files[0])
-            print(f"Loaded Logistic Regression: {os.path.basename(lr_files[0])}")
+        lr_file = os.path.join(models_folder, 'logistic_regression.joblib')
+        if os.path.exists(lr_file):
+            models['logistic'] = joblib.load(lr_file)
+            print(f"✅ Loaded Logistic Regression")
         
         # Load SVM
-        svm_files = glob.glob(os.path.join(models_folder, 'svm_*.joblib'))
-        if svm_files:
-            models['svm'] = joblib.load(svm_files[0])
-            print(f"Loaded SVM: {os.path.basename(svm_files[0])}")
+        svm_file = os.path.join(models_folder, 'svm.joblib')
+        if os.path.exists(svm_file):
+            models['svm'] = joblib.load(svm_file)
+            print(f"✅ Loaded SVM")
         
         # Load Random Forest
-        rf_files = glob.glob(os.path.join(models_folder, 'random_forest_*.joblib'))
-        if rf_files:
-            models['randomforest'] = joblib.load(rf_files[0])
-            print(f"Loaded Random Forest: {os.path.basename(rf_files[0])}")
+        rf_file = os.path.join(models_folder, 'random_forest.joblib')
+        if os.path.exists(rf_file):
+            models['randomforest'] = joblib.load(rf_file)
+            print(f"✅ Loaded Random Forest")
         
-        # Load Quantum model
-        quantum_files = glob.glob(os.path.join(models_folder, 'best_quantum_model_*.pkl'))
-        if quantum_files:
-            with open(quantum_files[0], 'rb') as f:
-                models['quantum'] = pickle.load(f)
-            print(f"Loaded Quantum model: {os.path.basename(quantum_files[0])}")
+        # Load Quantum model (optional - might fail)
+        quantum_file = os.path.join(models_folder, 'best_quantum_model.pkl')
+        if os.path.exists(quantum_file):
+            try:
+                with open(quantum_file, 'rb') as f:
+                    models['quantum'] = pickle.load(f)
+                print(f"✅ Loaded Quantum model")
+            except Exception as e:
+                print(f"⚠️  Quantum model failed to load: {str(e)}")
+                print(f"⚠️  Continuing without quantum model...")
         
         # Load metadata if available
         metadata_files = glob.glob(os.path.join(models_folder, 'extraction_summary_*.json'))
         if metadata_files:
             with open(metadata_files[0], 'r') as f:
                 model_metadata = json.load(f)
-            print(f"Loaded metadata: {os.path.basename(metadata_files[0])}")
+            print(f"✅ Loaded metadata: {os.path.basename(metadata_files[0])}")
         
-        print(f"\nSuccessfully loaded {len(models)} models!")
+        # Check if at least some models loaded
+        if len(models) == 0:
+            print("❌ No models were loaded!")
+            return False
+        
+        print(f"\n🎉 Successfully loaded {len(models)} models!")
         return True
         
     except Exception as e:
-        print(f"Error loading models: {str(e)}")
+        print(f"❌ Error loading models: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Check if server is running and models are loaded"""
-    return jsonify({
-        'status': 'healthy',
-        'models_loaded': list(models.keys()),
-        'timestamp': datetime.now().isoformat()
-    })
-
-@app.route('/model-info', methods=['GET'])
-def get_model_info():
-    """Get information about loaded models"""
-    info = {
-        'models': {}
-    }
-    
-    for key, model in models.items():
-        model_info = {
-            'name': model.__class__.__name__,
-            'loaded': True
-        }
-        
-        # Add metadata if available
-        if key in model_metadata:
-            model_info.update(model_metadata[key])
-        
-        info['models'][key] = model_info
-    
-    return jsonify(info)
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -168,17 +149,9 @@ def predict():
 
 @app.route('/')
 def home():
-    """Simple home page"""
-    return """
-    <h1>ML Model Server is Running!</h1>
-    <p>Models loaded: {}</p>
-    <p>Available endpoints:</p>
-    <ul>
-        <li>GET /health - Check server status</li>
-        <li>GET /model-info - Get model information</li>
-        <li>POST /predict - Make predictions</li>
-    </ul>
-    """.format(', '.join(models.keys()))
+    """Serve the main interface"""
+    from flask import render_template
+    return render_template('index.html')
 
 if __name__ == '__main__':
     print("=" * 50)
