@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum-Classical ML Systems | Technical Demonstration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .neural-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.15;
+            z-index: -1;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 60%, rgba(34, 197, 94, 0.1) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .status-connected {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
+
+        .status-disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            transition: left 0.5s;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-card:hover::before {
+            left: 100%;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .status-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .status-production {
+            background: #10b981;
+            color: #10b981;
+        }
+
+        .status-research {
+            background: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .status-loading {
+            background: #6366f1;
+            color: #6366f1;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .model-type {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .model-name {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+        }
+
+        .metrics {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .performance-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            margin-bottom: 3rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        .comparison-table th {
+            background: rgba(99, 102, 241, 0.1);
+            color: #e2e8f0;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 2px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .prediction-interface {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .predict-button {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .predict-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .predict-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .predictions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .prediction-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .prediction-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-result {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .confidence {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+        }
+
+        .processing-time {
+            font-size: 0.8rem;
+            color: #10b981;
+            margin-top: 0.25rem;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin: 2rem 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #6366f1;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 2rem;
+            color: #64748b;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="neural-background"></div>
+    
+    <div class="container">
+        <header class="header">
+            <h1>Quantum-Classical ML Systems</h1>
+            <p>Technical demonstration of hybrid machine learning architecture showcasing production-ready classical models alongside research-phase quantum computing capabilities</p>
+            <div class="connection-status" id="connectionStatus">
+                <span class="loading"></span> Connecting to backend...
+            </div>
+        </header>
+
+        <section class="status-grid" id="modelStatus">
+            <!-- Model status cards will be populated by JavaScript -->
+        </section>
+
+        <section class="performance-section">
+            <h2 class="section-title">Performance Metrics</h2>
+            <table class="comparison-table" id="performanceTable">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Accuracy</th>
+                        <th>Training Time</th>
+                        <th>Inference Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="performanceTableBody">
+                    <!-- Table rows will be populated by JavaScript -->
+                </tbody>
+            </table>
+            
+            <div class="chart-container" id="chartContainer">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </section>
+
+        <section class="prediction-interface">
+            <h2 class="section-title">Live Prediction Interface</h2>
+            <form id="predictionForm">
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="feature1">Feature 1</label>
+                        <input type="number" id="feature1" name="feature1" step="0.01" value="0.5" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="feature2">Feature 2</label>
+                        <input type="number" id="feature2" name="feature2" step="0.01" value="0.3" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="feature3">Feature 3</label>
+                        <input type="number" id="feature3" name="feature3" step="0.01" value="0.8" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="feature4">Feature 4</label>
+                        <input type="number" id="feature4" name="feature4" step="0.01" value="0.2" required>
+                    </div>
+                </div>
+                <button type="submit" class="predict-button" id="predictButton">Generate Predictions</button>
+            </form>
+
+            <div class="predictions-grid" id="predictionsGrid">
+                <!-- Prediction cards will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>Quantum-Classical ML Systems | Research & Development Platform</p>
+            <p>Demonstrating systematic approach to emerging technologies</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        const API_URL = 'http://localhost:5000';
+
+        class MLModelDemo {
+            constructor() {
+                this.models = {};
+                this.chart = null;
+                this.isConnected = false;
+                this.init();
+            }
+
+            async init() {
+                await this.checkConnection();
+                if (this.isConnected) {
+                    await this.loadModelInfo();
+                    this.renderModelStatus();
+                    this.renderPerformanceTable();
+                    this.renderChart();
+                }
+                this.setupPredictionForm();
+            }
+
+            async checkConnection() {
+                const statusEl = document.getElementById('connectionStatus');
+                try {
+                    const response = await fetch(`${API_URL}/health`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'healthy') {
+                        this.isConnected = true;
+                        statusEl.className = 'connection-status status-connected';
+                        statusEl.innerHTML = '✅ Connected to Backend | Models: ' + data.models_loaded.join(', ');
+                    }
+                } catch (error) {
+                    this.isConnected = false;
+                    statusEl.className = 'connection-status status-disconnected';
+                    statusEl.innerHTML = '❌ Backend Not Connected - Please start server (python app.py)';
+                    console.error('Connection error:', error);
+                }
+            }
+
+            async loadModelInfo() {
+                try {
+                    const response = await fetch(`${API_URL}/model-info`);
+                    const data = await response.json();
+                    this.models = data.models;
+                } catch (error) {
+                    console.error('Error loading model info:', error);
+                }
+            }
+
+            renderModelStatus() {
+                const container = document.getElementById('modelStatus');
+                container.innerHTML = '';
+
+                const modelDisplayNames = {
+                    'logistic': 'Logistic Regression',
+                    'svm': 'Support Vector Machine',
+                    'randomforest': 'Random Forest',
+                    'quantum': 'Variational Quantum Classifier'
+                };
+
+                Object.entries(this.models).forEach(([key, model]) => {
+                    const card = document.createElement('div');
+                    card.className = 'status-card';
+                    
+                    const isQuantum = key === 'quantum';
+                    const statusClass = isQuantum ? 'status-research' : 'status-production';
+                    const statusText = isQuantum ? 'Research Phase' : 'Production Ready';
+
+                    const accuracy = model.accuracy ? (model.accuracy * 100).toFixed(1) : 'N/A';
+                    const trainingTime = model.training_time ? model.training_time.toFixed(1) : 'N/A';
+
+                    card.innerHTML = `
+                        <div class="status-indicator">
+                            <div class="status-light ${statusClass}"></div>
+                            <span class="model-type">${modelDisplayNames[key] || model.name}</span>
+                        </div>
+                        <div class="model-name">${statusText}</div>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="metric-value">${accuracy}%</div>
+                                <div class="metric-label">Accuracy</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${trainingTime}s</div>
+                                <div class="metric-label">Training</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            }
+
+            renderPerformanceTable() {
+                const tbody = document.getElementById('performanceTableBody');
+                tbody.innerHTML = '';
+
+                const modelDisplayNames = {
+                    'logistic': 'Logistic Regression',
+                    'svm': 'Support Vector Machine',
+                    'randomforest': 'Random Forest',
+                    'quantum': 'Variational Quantum Classifier'
+                };
+
+                Object.entries(this.models).forEach(([key, model]) => {
+                    const row = document.createElement('tr');
+                    const isQuantum = key === 'quantum';
+                    const statusBadge = isQuantum ? 
+                        '<span style="color: #f59e0b; font-weight: 600;">Research Phase</span>' : 
+                        '<span style="color: #10b981; font-weight: 600;">Production Ready</span>';
+                    
+                    const accuracy = model.accuracy ? (model.accuracy * 100).toFixed(1) + '%' : 'N/A';
+                    const trainingTime = model.training_time ? model.training_time.toFixed(1) + 's' : 'N/A';
+                    
+                    row.innerHTML = `
+                        <td>${modelDisplayNames[key] || model.name}</td>
+                        <td>${accuracy}</td>
+                        <td>${trainingTime}</td>
+                        <td>~ms (varies)</td>
+                        <td>${statusBadge}</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+
+            renderChart() {
+                const ctx = document.getElementById('performanceChart').getContext('2d');
+                
+                const labels = Object.keys(this.models).map(key => {
+                    const names = {
+                        'logistic': 'Logistic Regression',
+                        'svm': 'SVM',
+                        'randomforest': 'Random Forest',
+                        'quantum': 'Quantum VQC'
+                    };
+                    return names[key] || key;
+                });
+
+                const accuracies = Object.values(this.models).map(m => 
+                    m.accuracy ? m.accuracy * 100 : 0
+                );
+
+                this.chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Accuracy (%)',
+                            data: accuracies,
+                            backgroundColor: [
+                                'rgba(96, 165, 250, 0.8)',
+                                'rgba(139, 92, 246, 0.8)',
+                                'rgba(52, 211, 153, 0.8)',
+                                'rgba(251, 191, 36, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(96, 165, 250, 1)',
+                                'rgba(139, 92, 246, 1)',
+                                'rgba(52, 211, 153, 1)',
+                                'rgba(251, 191, 36, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#e2e8f0'
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: '#94a3b8'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: '#94a3b8'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            setupPredictionForm() {
+                const form = document.getElementById('predictionForm');
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await this.generatePredictions();
+                });
+            }
+
+            async generatePredictions() {
+                if (!this.isConnected) {
+                    alert('Backend not connected! Please start the server first.');
+                    return;
+                }
+
+                const button = document.getElementById('predictButton');
+                button.disabled = true;
+                button.innerHTML = '<span class="loading"></span> Predicting...';
+
+                const formData = new FormData(document.getElementById('predictionForm'));
+                const features = {
+                    feature1: formData.get('feature1'),
+                    feature2: formData.get('feature2'),
+                    feature3: formData.get('feature3'),
+                    feature4: formData.get('feature4')
+                };
+
+                try {
+                    const response = await fetch(`${API_URL}/predict`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(features)
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.renderPredictions(data.predictions);
+                    } else {
+                        alert('Prediction failed: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Prediction error:', error);
+                    alert('Error making predictions. Check console for details.');
+                } finally {
+                    button.disabled = false;
+                    button.innerHTML = 'Generate Predictions';
+                }
+            }
+
+            renderPredictions(predictions) {
+                const container = document.getElementById('predictionsGrid');
+                container.innerHTML = '';
+
+                const modelDisplayNames = {
+                    'logistic': 'Logistic Regression',
+                    'svm': 'Support Vector Machine',
+                    'randomforest': 'Random Forest',
+                    'quantum': 'Quantum VQC'
+                };
+
+                Object.entries(predictions).forEach(([key, pred]) => {
+                    const card = document.createElement('div');
+                    card.className = 'prediction-card';
+                    
+                    if (pred.error) {
+                        card.innerHTML = `
+                            <div class="prediction-title">${modelDisplayNames[key]}</div>
+                            <div class="error">Error: ${pred.error}</div>
+                        `;
+                    } else {
+                        const confidenceHtml = pred.confidence ? 
+                            `<div class="confidence">Confidence: ${(pred.confidence * 100).toFixed(1)}%</div>` : 
+                            '';
+                        
+                        card.innerHTML = `
+                            <div class="prediction-title">${modelDisplayNames[key]}</div>
+                            <div class="prediction-result">${pred.prediction}</div>
+                            ${confidenceHtml}
+                            <div class="processing-time">Processing time: ${pred.inference_time.toFixed(2)}ms</div>
+                        `;
+                    }
+                    
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        // Initialize the demo when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new MLModelDemo();
+        });
+    </script>
+</body>
+</html>
