@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)  # This allows your HTML to talk to this server
+CORS(app, resources={r"/*": {"origins": "*"}})  # This allows your HTML to talk to this server
 
 # Global variables to store loaded models
 models = {}
@@ -20,12 +20,12 @@ def load_models():
     """Load all models from the extracted_models folder"""
     global models, scaler, model_metadata
     
-    print("🔍 Looking for models in 'extracted_models' folder...")
+    print("Looking for models in 'extracted_models' folder...")
     
     # Find the extracted_models folder
     models_folder = 'extracted_models'
     if not os.path.exists(models_folder):
-        print("❌ 'extracted_models' folder not found!")
+        print("'extracted_models' folder not found!")
         return False
     
     try:
@@ -33,25 +33,25 @@ def load_models():
         scaler_file = os.path.join(models_folder, 'preprocessing.pkl')
         if os.path.exists(scaler_file):
             scaler = joblib.load(scaler_file)
-            print(f"✅ Loaded preprocessing scaler")
+            print(f"Loaded preprocessing scaler")
         
         # Load Logistic Regression
         lr_file = os.path.join(models_folder, 'logistic_regression.joblib')
         if os.path.exists(lr_file):
             models['logistic'] = joblib.load(lr_file)
-            print(f"✅ Loaded Logistic Regression")
+            print(f"Loaded Logistic Regression")
         
         # Load SVM
         svm_file = os.path.join(models_folder, 'svm.joblib')
         if os.path.exists(svm_file):
             models['svm'] = joblib.load(svm_file)
-            print(f"✅ Loaded SVM")
+            print(f"Loaded SVM")
         
         # Load Random Forest
         rf_file = os.path.join(models_folder, 'random_forest.joblib')
         if os.path.exists(rf_file):
             models['randomforest'] = joblib.load(rf_file)
-            print(f"✅ Loaded Random Forest")
+            print(f"Loaded Random Forest")
         
         # Load Quantum model (optional - might fail)
         quantum_file = os.path.join(models_folder, 'best_quantum_model.pkl')
@@ -59,28 +59,35 @@ def load_models():
             try:
                 with open(quantum_file, 'rb') as f:
                     models['quantum'] = pickle.load(f)
-                print(f"✅ Loaded Quantum model")
+                print(f"Loaded Quantum model")
             except Exception as e:
-                print(f"⚠️  Quantum model failed to load: {str(e)}")
-                print(f"⚠️  Continuing without quantum model...")
+                print(f" Quantum model failed to load: {str(e)}")
+                print(f"Continuing without quantum model...")
         
         # Load metadata if available
-        metadata_files = glob.glob(os.path.join(models_folder, 'extraction_summary_*.json'))
+        metadata_files = glob.glob(os.path.join(models_folder, 'extraction_summary*.json'))
         if metadata_files:
             with open(metadata_files[0], 'r') as f:
                 model_metadata = json.load(f)
-            print(f"✅ Loaded metadata: {os.path.basename(metadata_files[0])}")
+            print(f"Loaded metadata: {os.path.basename(metadata_files[0])}")
+        else:
+            # Try without timestamp pattern
+            metadata_file = os.path.join(models_folder, 'extraction_summary.json')
+            if os.path.exists(metadata_file):
+                with open(metadata_file, 'r') as f:
+                    model_metadata = json.load(f)
+                print(f"Loaded metadata: extraction_summary.json")
         
         # Check if at least some models loaded
         if len(models) == 0:
-            print("❌ No models were loaded!")
+            print("No models were loaded!")
             return False
         
-        print(f"\n🎉 Successfully loaded {len(models)} models!")
+        print(f"\nSuccessfully loaded {len(models)} models!")
         return True
         
     except Exception as e:
-        print(f"❌ Error loading models: {str(e)}")
+        print(f"Error loading models: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
@@ -146,6 +153,51 @@ def predict():
             'success': False,
             'error': str(e)
         }), 400
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Check if server is running and models are loaded"""
+    return jsonify({
+        'status': 'healthy',
+        'models_loaded': list(models.keys()),
+        'timestamp': datetime.now().isoformat()
+    })
+
+# ADD THIS NEW ROUTE HERE:
+@app.route('/test', methods=['GET'])
+def test():
+    """Simple test endpoint"""
+    return jsonify({'message': 'Server is working!', 'models': list(models.keys())})
+
+@app.route('/model-info', methods=['GET'])
+def get_model_info():
+    """Get information about loaded models"""
+    info = {
+        'models': {}
+    }
+    
+    model_names = {
+        'logistic': 'Logistic Regression',
+        'svm': 'Support Vector Machine', 
+        'randomforest': 'Random Forest',
+        'quantum': 'Variational Quantum Classifier'
+    }
+    
+    for key, model in models.items():
+        model_info = {
+            'name': model_names.get(key, model.__class__.__name__),
+            'loaded': True,
+            'accuracy': None,
+            'training_time': None
+        }
+        
+        # Add metadata if available
+        if model_metadata and key in model_metadata:
+            model_info.update(model_metadata[key])
+        
+        info['models'][key] = model_info
+    
+    return jsonify(info)
 
 @app.route('/')
 def home():
